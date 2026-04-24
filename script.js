@@ -462,7 +462,7 @@ regionInput.addEventListener('input', () => {
       const list = await r.json();
       renderAutocomplete(list);
     } catch (e) { console.warn(e); }
-  }, 150);
+  }, 300);
 });
 
 regionInput.addEventListener('keydown', (e) => {

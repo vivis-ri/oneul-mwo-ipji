@@ -14,6 +14,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Render 등 리버스 프록시 뒤에서 실제 클라이언트 IP로 rate limit 카운트
+app.set('trust proxy', 1);
+
 // Render 헬스체크용 경량 엔드포인트
 app.get('/health', (_req, res) => {
   res.set('Cache-Control', 'no-store');
@@ -56,7 +59,7 @@ app.use(express.static(__dirname, { dotfiles: 'deny', index: 'index.html' }));
 // ─── 보안: Rate Limiting ──────────────────────────────
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,           // 1분
-  max: 60,                       // IP당 60회
+  max: 200,                      // IP당 200회
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
