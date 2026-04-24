@@ -275,18 +275,27 @@ const COMMUNITY_ITEMS = [
 async function loadCommunityRegions() {
   if (COMMUNITY.regions) return COMMUNITY.regions;
   const r = await fetch('/api/community/regions');
-  COMMUNITY.regions = await r.json();
+  const data = await r.json();
+  // 신규 응답: { groups, flat } / 구버전 응답: string[]
+  COMMUNITY.regions = Array.isArray(data)
+    ? { groups: [{ province: '', cities: data }], flat: data }
+    : data;
   return COMMUNITY.regions;
 }
 
 function populateRegionSelects(regions) {
   const filterSel = $('#communityRegionFilter');
   const postSel = $('#postRegion');
-  const opts = regions.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
-  filterSel.innerHTML = `<option value="">전체 지역</option>${opts}`;
-  postSel.innerHTML = opts;
+  const groupsHtml = regions.groups.map(g => {
+    const opts = g.cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    return g.province
+      ? `<optgroup label="${escapeHtml(g.province)}">${opts}</optgroup>`
+      : opts;
+  }).join('');
+  filterSel.innerHTML = `<option value="">전체 지역</option>${groupsHtml}`;
+  postSel.innerHTML = groupsHtml;
   // 현재 홈에서 선택된 지역이 시 단위면 기본값
-  if (STATE.region && regions.includes(STATE.region)) {
+  if (STATE.region && regions.flat.includes(STATE.region)) {
     postSel.value = STATE.region;
   }
 }

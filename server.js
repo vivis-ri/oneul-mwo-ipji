@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import pg from 'pg';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { REGIONS, searchRegions, findRegion } from './gridCoords.js';
+import { REGIONS, CITY_GROUPS, searchRegions, findRegion } from './gridCoords.js';
 import { CLOTHING_BANDS, getBandByTemp } from './clothing.js';
 
 const { Pool } = pg;
@@ -653,7 +653,8 @@ async function getCommunityPosts(regionFilter) {
 
 // 지역 목록 (커뮤니티 드롭다운용)
 app.get('/api/community/regions', (req, res) => {
-  res.json(CITY_REGIONS);
+  // 도/광역시별로 그룹핑된 시 목록 반환 (클라이언트 optgroup용)
+  res.json({ groups: CITY_GROUPS, flat: CITY_REGIONS });
 });
 
 // 후기 작성
