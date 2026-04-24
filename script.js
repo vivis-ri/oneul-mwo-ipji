@@ -352,7 +352,7 @@ async function submitPost() {
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || '저장 실패');
-    setFormMsg('✓ 후기가 저장됐어요. 24시간 뒤 자동 삭제됩니다.', 'success');
+  setFormMsg('✓ 후기가 저장됐어요. 오늘 자정 이후 초기화됩니다.', 'success');
     // 폼 초기화
     COMMUNITY.selectedFeel = null;
     COMMUNITY.selectedItems.clear();
@@ -383,7 +383,7 @@ async function loadCommunityFeed() {
 function renderCommunityStats({ total, feelStats, topItems, regionFilter }) {
   const statsCard = $('#communityStats');
   $('#statsRegionLabel').textContent = regionFilter || '전체 지역';
-  $('#statsTotal').textContent = `${total}명 참여 (24시간)`;
+  $('#statsTotal').textContent = `${total}명 참여 (오늘 기준)`;
   $('.feel-pct[data-feel="cold"]').textContent = `${feelStats.cold}%`;
   $('.feel-pct[data-feel="good"]').textContent = `${feelStats.good}%`;
   $('.feel-pct[data-feel="hot"]').textContent = `${feelStats.hot}%`;

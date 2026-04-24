@@ -1,11 +1,13 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
+import pg from 'pg';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { REGIONS, searchRegions, findRegion } from './gridCoords.js';
 import { CLOTHING_BANDS, getBandByTemp } from './clothing.js';
 
+const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -458,7 +460,7 @@ app.get('/api/bands', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// 커뮤니티 · 실시간 체감 후기 (24시간 자동 삭제)
+// 커뮤니티 · 실시간 체감 후기 (매일 자정 이후 초기화)
 // ═══════════════════════════════════════════════════════
 const FEEL_VALUES = ['cold', 'good', 'hot'];
 const ALLOWED_ITEMS = [
@@ -469,22 +471,138 @@ const ALLOWED_ITEMS = [
 ];
 // 시 단위 지역 (구/군 제외)
 const CITY_REGIONS = REGIONS.filter(r => !r.name.includes(' ')).map(r => r.name);
+const COMMUNITY_TIMEZONE = 'Asia/Seoul';
+const kstDateFormatter = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: COMMUNITY_TIMEZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const dbPool = process.env.DATABASE_URL ? new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 5,
+}) : null;
+const dbReady = dbPool ? initCommunityDb() : Promise.resolve();
 
 // 메모리 저장소 — 가장 오래된 것이 배열 앞, 최신이 뒤
 const posts = [];
 let postIdSeq = 1;
 
-// 24시간 경과 포스트 정리 (매 30분)
+function getKstDateKey(input = Date.now()) {
+  return kstDateFormatter.format(new Date(input));
+}
+
+function isSameKstDay(ts) {
+  return getKstDateKey(ts) === getKstDateKey();
+}
+
+async function initCommunityDb() {
+  await dbPool.query(`
+    CREATE TABLE IF NOT EXISTS community_posts (
+      id BIGSERIAL PRIMARY KEY,
+      region TEXT NOT NULL,
+      feel TEXT NOT NULL,
+      items TEXT[] NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await dbPool.query(`
+    CREATE INDEX IF NOT EXISTS idx_community_posts_created_at
+    ON community_posts (created_at DESC);
+  `);
+  await dbPool.query(`
+    CREATE INDEX IF NOT EXISTS idx_community_posts_region_created_at
+    ON community_posts (region, created_at DESC);
+  `);
+}
+
+// 자정(KST) 지난 포스트 정리
 function cleanupExpiredPosts() {
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  const firstValid = posts.findIndex(p => p.ts >= cutoff);
+  const firstValid = posts.findIndex(p => isSameKstDay(p.ts));
   if (firstValid === -1 && posts.length > 0) {
     posts.length = 0;
   } else if (firstValid > 0) {
     posts.splice(0, firstValid);
   }
 }
-setInterval(cleanupExpiredPosts, 30 * 60 * 1000);
+
+async function cleanupExpiredDbPosts() {
+  if (!dbPool) return;
+  await dbReady;
+  await dbPool.query(`
+    DELETE FROM community_posts
+    WHERE (created_at AT TIME ZONE '${COMMUNITY_TIMEZONE}')::date
+      < (NOW() AT TIME ZONE '${COMMUNITY_TIMEZONE}')::date
+  `);
+}
+
+setInterval(() => {
+  cleanupExpiredPosts();
+  cleanupExpiredDbPosts().catch((err) => {
+    console.warn('[community cleanup]', err.message);
+  });
+}, 30 * 60 * 1000);
+
+async function saveCommunityPost({ region, feel, items }) {
+  if (!dbPool) {
+    cleanupExpiredPosts();
+    const post = {
+      id: postIdSeq++,
+      region,
+      feel,
+      items,
+      ts: Date.now(),
+    };
+    posts.push(post);
+    return { id: post.id };
+  }
+
+  await cleanupExpiredDbPosts();
+  const { rows } = await dbPool.query(
+    `INSERT INTO community_posts (region, feel, items)
+     VALUES ($1, $2, $3::text[])
+     RETURNING id`,
+    [region, feel, items],
+  );
+  return { id: rows[0].id };
+}
+
+async function getCommunityPosts(regionFilter) {
+  if (!dbPool) {
+    cleanupExpiredPosts();
+    return regionFilter && CITY_REGIONS.includes(regionFilter)
+      ? posts.filter(p => p.region === regionFilter)
+      : [...posts];
+  }
+
+  await cleanupExpiredDbPosts();
+  const params = [];
+  let where = `
+    WHERE (created_at AT TIME ZONE '${COMMUNITY_TIMEZONE}')::date
+      = (NOW() AT TIME ZONE '${COMMUNITY_TIMEZONE}')::date
+  `;
+
+  if (regionFilter && CITY_REGIONS.includes(regionFilter)) {
+    params.push(regionFilter);
+    where += ` AND region = $${params.length}`;
+  }
+
+  const { rows } = await dbPool.query(
+    `SELECT id, region, feel, items, created_at
+     FROM community_posts
+     ${where}
+     ORDER BY created_at ASC`,
+    params,
+  );
+
+  return rows.map(row => ({
+    id: Number(row.id),
+    region: row.region,
+    feel: row.feel,
+    items: Array.isArray(row.items) ? row.items : [],
+    ts: new Date(row.created_at).getTime(),
+  }));
+}
 
 // 지역 목록 (커뮤니티 드롭다운용)
 app.get('/api/community/regions', (req, res) => {
@@ -492,68 +610,75 @@ app.get('/api/community/regions', (req, res) => {
 });
 
 // 후기 작성
-app.post('/api/community/posts', (req, res) => {
+app.post('/api/community/posts', async (req, res) => {
   const { region, feel, items } = req.body || {};
 
-  // 검증
-  if (!region || !CITY_REGIONS.includes(region)) {
-    return res.status(400).json({ error: '유효하지 않은 지역입니다' });
-  }
-  if (!FEEL_VALUES.includes(feel)) {
-    return res.status(400).json({ error: '체감 값이 유효하지 않습니다' });
-  }
-  if (!Array.isArray(items) || items.length === 0 || items.length > 8) {
-    return res.status(400).json({ error: '옷은 1~8개 선택해주세요' });
-  }
-  const cleanItems = items.filter(i => typeof i === 'string' && ALLOWED_ITEMS.includes(i));
-  if (cleanItems.length === 0) {
-    return res.status(400).json({ error: '유효한 옷 항목이 없습니다' });
-  }
+  try {
+    // 검증
+    if (!region || !CITY_REGIONS.includes(region)) {
+      return res.status(400).json({ error: '유효하지 않은 지역입니다' });
+    }
+    if (!FEEL_VALUES.includes(feel)) {
+      return res.status(400).json({ error: '체감 값이 유효하지 않습니다' });
+    }
+    if (!Array.isArray(items) || items.length === 0 || items.length > 8) {
+      return res.status(400).json({ error: '옷은 1~8개 선택해주세요' });
+    }
+    const cleanItems = Array.from(new Set(
+      items.filter(i => typeof i === 'string' && ALLOWED_ITEMS.includes(i)),
+    ));
+    if (cleanItems.length === 0) {
+      return res.status(400).json({ error: '유효한 옷 항목이 없습니다' });
+    }
 
-  const post = {
-    id: postIdSeq++,
-    region,
-    feel,
-    items: Array.from(new Set(cleanItems)),  // 중복 제거
-    ts: Date.now(),
-  };
-  posts.push(post);
-  res.json({ ok: true, id: post.id });
+    const saved = await saveCommunityPost({ region, feel, items: cleanItems });
+    res.json({ ok: true, id: saved.id });
+  } catch (err) {
+    console.error('[/api/community/posts]', err);
+    res.status(500).json({ error: '후기를 저장하지 못했어요' });
+  }
 });
 
 // 통계 + 최근 후기 조회
-app.get('/api/community/feed', (req, res) => {
-  const regionFilter = req.query.region;
-  cleanupExpiredPosts();
+app.get('/api/community/feed', async (req, res) => {
+  try {
+    const regionFilter = typeof req.query.region === 'string' ? req.query.region : null;
+    const filtered = await getCommunityPosts(regionFilter);
 
-  let filtered = posts;
-  if (regionFilter && CITY_REGIONS.includes(regionFilter)) {
-    filtered = posts.filter(p => p.region === regionFilter);
+    // 통계 집계
+    const total = filtered.length;
+    const feelCounts = { cold: 0, good: 0, hot: 0 };
+    const itemCounts = new Map();
+    filtered.forEach(p => {
+      feelCounts[p.feel]++;
+      p.items.forEach(it => itemCounts.set(it, (itemCounts.get(it) || 0) + 1));
+    });
+    const feelStats = total > 0
+      ? {
+          cold: Math.round(feelCounts.cold / total * 100),
+          good: Math.round(feelCounts.good / total * 100),
+          hot: Math.round(feelCounts.hot / total * 100),
+        }
+      : { cold: 0, good: 0, hot: 0 };
+    const topItems = Array.from(itemCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+
+    // 최근 20건 (최신순)
+    const recent = filtered.slice(-20).reverse().map(p => ({
+      id: p.id,
+      region: p.region,
+      feel: p.feel,
+      items: p.items,
+      ago: formatAgo(Date.now() - p.ts),
+    }));
+
+    res.json({ total, feelStats, topItems, recent, regionFilter: regionFilter || null });
+  } catch (err) {
+    console.error('[/api/community/feed]', err);
+    res.status(500).json({ error: '커뮤니티 데이터를 불러오지 못했어요' });
   }
-
-  // 통계 집계
-  const total = filtered.length;
-  const feelCounts = { cold: 0, good: 0, hot: 0 };
-  const itemCounts = new Map();
-  filtered.forEach(p => {
-    feelCounts[p.feel]++;
-    p.items.forEach(it => itemCounts.set(it, (itemCounts.get(it) || 0) + 1));
-  });
-  const feelStats = total > 0
-    ? { cold: Math.round(feelCounts.cold / total * 100), good: Math.round(feelCounts.good / total * 100), hot: Math.round(feelCounts.hot / total * 100) }
-    : { cold: 0, good: 0, hot: 0 };
-  const topItems = Array.from(itemCounts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([name, count]) => ({ name, count }));
-
-  // 최근 20건 (최신순)
-  const recent = filtered.slice(-20).reverse().map(p => ({
-    id: p.id, region: p.region, feel: p.feel, items: p.items,
-    ago: formatAgo(Date.now() - p.ts),
-  }));
-
-  res.json({ total, feelStats, topItems, recent, regionFilter: regionFilter || null });
 });
 
 function formatAgo(ms) {
