@@ -306,7 +306,7 @@ function regionToSido(regionName) {
 // ─── 미세먼지 (AirKorea API) ──────────────────────────
 async function fetchAirQuality(sidoName) {
   const key = process.env.KMA_API_KEY; // 동일 인증키 사용
-  const url = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=${key}&returnType=json&numOfRows=100&pageNo=1&sidoName=${encodeURIComponent(sidoName)}&ver=1.0`;
+  const url = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=${encodeURIComponent(key)}&returnType=json&numOfRows=100&pageNo=1&sidoName=${encodeURIComponent(sidoName)}&ver=1.0`;
   const r = await fetch(url);
   const text = await r.text();
   let data;
