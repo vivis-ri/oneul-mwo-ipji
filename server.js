@@ -536,6 +536,35 @@ async function cleanupExpiredDbPosts() {
   `);
 }
 
+function normalizeSamplePostsInMemory() {
+  posts.forEach((post) => {
+    if (!isSameKstDay(post.ts) || post.region !== '서울') return;
+    const itemsKey = [...post.items].sort().join('|');
+    if (itemsKey === '면바지|반팔' || itemsKey === '반팔|슬랙스') {
+      post.feel = 'good';
+      post.items = ['블라우스', '슬랙스'];
+    }
+  });
+}
+
+async function normalizeSamplePostsInDb() {
+  if (!dbPool) return;
+  await dbReady;
+  await dbPool.query(
+    `UPDATE community_posts
+     SET feel = 'good',
+         items = ARRAY['블라우스', '슬랙스']::text[]
+     WHERE (created_at AT TIME ZONE '${COMMUNITY_TIMEZONE}')::date
+         = (NOW() AT TIME ZONE '${COMMUNITY_TIMEZONE}')::date
+       AND region = '서울'
+       AND (
+         (items @> ARRAY['반팔', '면바지']::text[] AND cardinality(items) = 2)
+         OR
+         (items @> ARRAY['반팔', '슬랙스']::text[] AND cardinality(items) = 2)
+       )`
+  );
+}
+
 setInterval(() => {
   cleanupExpiredPosts();
   cleanupExpiredDbPosts().catch((err) => {
@@ -554,6 +583,7 @@ async function saveCommunityPost({ region, feel, items }) {
       ts: Date.now(),
     };
     posts.push(post);
+    normalizeSamplePostsInMemory();
     return { id: post.id };
   }
 
@@ -564,18 +594,21 @@ async function saveCommunityPost({ region, feel, items }) {
      RETURNING id`,
     [region, feel, items],
   );
+  await normalizeSamplePostsInDb();
   return { id: rows[0].id };
 }
 
 async function getCommunityPosts(regionFilter) {
   if (!dbPool) {
     cleanupExpiredPosts();
+    normalizeSamplePostsInMemory();
     return regionFilter && CITY_REGIONS.includes(regionFilter)
       ? posts.filter(p => p.region === regionFilter)
       : [...posts];
   }
 
   await cleanupExpiredDbPosts();
+  await normalizeSamplePostsInDb();
   const params = [];
   let where = `
     WHERE (created_at AT TIME ZONE '${COMMUNITY_TIMEZONE}')::date
