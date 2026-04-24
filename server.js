@@ -207,9 +207,9 @@ function parseForecast(items) {
   const sky = byCategoryAtTime('SKY', curHour) || tmpItems[0] && byCategoryAtTime('SKY', tmpItems[0].fcstTime);
   const pty = byCategoryAtTime('PTY', curHour) || tmpItems[0] && byCategoryAtTime('PTY', tmpItems[0].fcstTime);
 
-  // 습도, 풍속
-  const reh = byCategoryAtTime('REH', curHour);
-  const wsd = byCategoryAtTime('WSD', curHour);
+  // 습도, 풍속 (현재 시간 없으면 가장 가까운 예보 시간으로 폴백)
+  const reh = byCategoryAtTime('REH', curHour) || tmpItems[0] && byCategoryAtTime('REH', tmpItems[0].fcstTime);
+  const wsd = byCategoryAtTime('WSD', curHour) || tmpItems[0] && byCategoryAtTime('WSD', tmpItems[0].fcstTime);
   // 강수 (현재/가장 가까운 시간)
   const pop = byCategoryAtTime('POP', curHour) || tmpItems[0] && byCategoryAtTime('POP', tmpItems[0].fcstTime);
   const pcp = byCategoryAtTime('PCP', curHour) || tmpItems[0] && byCategoryAtTime('PCP', tmpItems[0].fcstTime);
