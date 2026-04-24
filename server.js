@@ -12,6 +12,12 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Render 헬스체크용 경량 엔드포인트
+app.get('/health', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.status(200).json({ ok: true });
+});
+
 // ─── 보안: Helmet (CSP + 기본 보안 헤더) ────────────────
 app.use(helmet({
   contentSecurityPolicy: {
