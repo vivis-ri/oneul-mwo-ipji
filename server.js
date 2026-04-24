@@ -713,8 +713,8 @@ app.get('/api/community/feed', async (req, res) => {
       .slice(0, 5)
       .map(([name, count]) => ({ name, count }));
 
-    // 최근 20건 (최신순)
-    const recent = filtered.slice(-20).reverse().map(p => ({
+    // 최근 100건 (최신순)
+    const recent = filtered.slice(-100).reverse().map(p => ({
       id: p.id,
       region: p.region,
       feel: p.feel,
