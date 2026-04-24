@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 // Render 헬스체크용 경량 엔드포인트
 app.get('/health', (_req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.status(200).json({ ok: true });
+  res.status(200).json({ ok: true, revision: 'sample-fix-2' });
 });
 
 // ─── 보안: Helmet (CSP + 기본 보안 헤더) ────────────────
