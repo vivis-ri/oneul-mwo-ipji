@@ -536,17 +536,38 @@ function dfsXyConv(lat, lon) {
 }
 
 function tryGeolocation() {
-  if (!navigator.geolocation) { alert('이 브라우저는 위치 기능을 지원하지 않아요.'); return; }
+  if (!navigator.geolocation) {
+    alert('이 브라우저는 위치 기능을 지원하지 않아요. 지역 검색을 이용해주세요.');
+    return;
+  }
+  if (!window.isSecureContext) {
+    alert('위치 기능은 HTTPS 환경에서만 사용할 수 있어요.');
+    return;
+  }
+  const prevValue = regionInput.value;
   regionInput.value = '현재 위치 찾는 중...';
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { latitude, longitude } = pos.coords;
+      // 한국 영역 벗어남 체크 (위도 33~39, 경도 124~132 대략)
+      if (latitude < 32 || latitude > 39 || longitude < 124 || longitude > 132) {
+        regionInput.value = prevValue;
+        alert('한국 내 위치만 지원해요. 지역을 직접 선택해주세요.');
+        return;
+      }
       const { nx, ny } = dfsXyConv(latitude, longitude);
       regionInput.value = '현재 위치';
       loadWeatherByCoords(nx, ny);
     },
-    (err) => { regionInput.value = ''; alert('위치를 가져올 수 없어요: ' + err.message); },
-    { enableHighAccuracy: false, timeout: 8000 }
+    (err) => {
+      regionInput.value = prevValue;
+      let msg = '위치를 가져올 수 없어요.';
+      if (err.code === 1) msg = '위치 권한이 차단돼 있어요. 브라우저 설정에서 허용해주세요.';
+      else if (err.code === 2) msg = '현재 위치를 찾지 못했어요. 잠시 후 다시 시도하거나 지역을 직접 선택해주세요.';
+      else if (err.code === 3) msg = '위치 확인 시간이 초과됐어요. 다시 시도하거나 지역을 직접 선택해주세요.';
+      alert(msg);
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
   );
 }
 

@@ -96,16 +96,21 @@ function setCached(key, data) {
   }
 }
 
-// ─── 기상청 API 호출 시각 계산 ─────────────────────────
+// ─── 기상청 API 호출 시각 계산 (KST 고정) ──────────────
 // 단기예보 발표시각: 02, 05, 08, 11, 14, 17, 20, 23시 (+10분 후 데이터 제공)
+// ⚠️ Render 등 UTC 기본 서버에서도 한국 시간으로 동작하도록 모든 시각 계산을 KST로 고정
+function kstNow() {
+  // Date.now()는 플랫폼 무관 UTC ms. +9h 보정 후 getUTC*()로 읽으면 KST의 벽시계 시간
+  return new Date(Date.now() + 9 * 60 * 60 * 1000);
+}
 function formatDate(d) {
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
 function getBaseDateTime() {
-  const now = new Date();
+  const now = kstNow();
   const baseTimes = ['2300', '2000', '1700', '1400', '1100', '0800', '0500', '0200'];
-  const cur = now.getHours() * 60 + now.getMinutes();
+  const cur = now.getUTCHours() * 60 + now.getUTCMinutes();
   for (const bt of baseTimes) {
     const btMin = parseInt(bt.slice(0, 2), 10) * 60 + parseInt(bt.slice(2), 10) + 10;
     if (cur >= btMin) {
@@ -113,7 +118,7 @@ function getBaseDateTime() {
     }
   }
   const y = new Date(now);
-  y.setDate(y.getDate() - 1);
+  y.setUTCDate(y.getUTCDate() - 1);
   return { baseDate: formatDate(y), baseTime: '2300' };
 }
 
@@ -169,11 +174,11 @@ function calcFeelsLike(T, windSpeed_mps, humidity) {
 
 // 응답 파싱
 function parseForecast(items) {
-  const today = formatDate(new Date());
+  const now = kstNow();
+  const today = formatDate(now);
   const todayItems = items.filter(i => i.fcstDate === today);
 
-  const now = new Date();
-  const curHour = String(now.getHours()).padStart(2, '0') + '00';
+  const curHour = String(now.getUTCHours()).padStart(2, '0') + '00';
 
   const byCategoryAtTime = (cat, time) =>
     todayItems.find(i => i.category === cat && i.fcstTime === time)?.fcstValue;
@@ -207,15 +212,15 @@ function parseForecast(items) {
   const pcp = byCategoryAtTime('PCP', curHour) || tmpItems[0] && byCategoryAtTime('PCP', tmpItems[0].fcstTime);
 
   // 시간별 예보 (현재 + 3시간 간격, 6개 슬롯)
-  const curH = now.getHours();
+  const curH = now.getUTCHours();
   const hourly = [];
   const allItems = items; // 오늘 + 내일까지 포함
 
   for (let offset = 0; offset < 18 && hourly.length < 6; offset += 3) {
     const future = new Date(now);
-    future.setHours(curH + offset, 0, 0, 0);
+    future.setUTCHours(curH + offset, 0, 0, 0);
     const fcstDate = formatDate(future);
-    const fcstTime = String(future.getHours()).padStart(2, '0') + '00';
+    const fcstTime = String(future.getUTCHours()).padStart(2, '0') + '00';
     const match = allItems.filter(i => i.fcstDate === fcstDate && i.fcstTime === fcstTime);
     const tmp = match.find(i => i.category === 'TMP')?.fcstValue;
     const sky = match.find(i => i.category === 'SKY')?.fcstValue;
@@ -226,7 +231,7 @@ function parseForecast(items) {
       hourly.push({
         time: fcstTime,
         date: fcstDate,
-        isToday: fcstDate === formatDate(new Date()),
+        isToday: fcstDate === today,
         temp: parseFloat(tmp),
         sky: sky ? parseInt(sky, 10) : null,
         pty: pty ? parseInt(pty, 10) : null,
@@ -237,8 +242,8 @@ function parseForecast(items) {
   }
 
   // 저녁/밤 기온 — 오늘 21시 예보 (없으면 내일 00시/03시, 최후엔 TMN)
-  const todayStr = formatDate(new Date());
-  const tomorrowStr = formatDate(new Date(new Date().getTime() + 86400000));
+  const todayStr = today;
+  const tomorrowStr = formatDate(new Date(now.getTime() + 86400000));
   const pickTemp = (date, time, category = 'TMP') =>
     allItems.find(i => i.fcstDate === date && i.fcstTime === time && i.category === category)?.fcstValue;
 
@@ -325,10 +330,10 @@ async function fetchAirQuality(sidoName) {
 
 // ─── 3일 예보 (단기예보 확장) ─────────────────────────
 function parse3DayForecast(items) {
-  const today = new Date();
+  const today = kstNow();  // KST 기준
   const days = [0, 1, 2].map(offset => {
     const d = new Date(today);
-    d.setDate(d.getDate() + offset);
+    d.setUTCDate(d.getUTCDate() + offset);
     return formatDate(d);
   });
 
@@ -355,12 +360,13 @@ function parse3DayForecast(items) {
     const totalPcp = pcpValues.reduce((a, b) => a + b, 0);
 
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    const jsDate = new Date(date.slice(0,4), parseInt(date.slice(4,6))-1, parseInt(date.slice(6,8)));
+    // Date.UTC()로 생성 후 getUTCDay() — 서버 타임존 무관하게 안정적
+    const jsDate = new Date(Date.UTC(+date.slice(0,4), parseInt(date.slice(4,6))-1, parseInt(date.slice(6,8))));
 
     return {
       date,
       dayLabel: idx === 0 ? '오늘' : idx === 1 ? '내일' : '모레',
-      weekday: dayNames[jsDate.getDay()],
+      weekday: dayNames[jsDate.getUTCDay()],
       max: maxT,
       min: minT,
       sky: sky ? parseInt(sky, 10) : null,
