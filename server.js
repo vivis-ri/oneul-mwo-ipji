@@ -470,7 +470,7 @@ app.get('/api/bands', (req, res) => {
 // ═══════════════════════════════════════════════════════
 const FEEL_VALUES = ['cold', 'good', 'hot'];
 const ALLOWED_ITEMS = [
-  '반팔','긴팔','블라우스','맨투맨','후드티','니트','가디건',
+  '반소매','긴소매','블라우스','맨투맨','후드티','니트','가디건',
   '자켓','코트','패딩','트렌치코트',
   '반바지','청바지','슬랙스','면바지','기모바지',
   '원피스','스커트',
@@ -546,7 +546,8 @@ function normalizeSamplePostsInMemory() {
   posts.forEach((post) => {
     if (!isSameKstDay(post.ts) || post.region !== '서울') return;
     const itemsKey = [...post.items].sort().join('|');
-    if (itemsKey === '면바지|반팔' || itemsKey === '반팔|슬랙스') {
+    if (itemsKey === '면바지|반팔' || itemsKey === '반팔|슬랙스'
+     || itemsKey === '면바지|반소매' || itemsKey === '반소매|슬랙스') {
       post.feel = 'good';
       post.items = ['블라우스', '슬랙스'];
     }
@@ -567,6 +568,10 @@ async function normalizeSamplePostsInDb() {
          (items @> ARRAY['반팔', '면바지']::text[] AND cardinality(items) = 2)
          OR
          (items @> ARRAY['반팔', '슬랙스']::text[] AND cardinality(items) = 2)
+         OR
+         (items @> ARRAY['반소매', '면바지']::text[] AND cardinality(items) = 2)
+         OR
+         (items @> ARRAY['반소매', '슬랙스']::text[] AND cardinality(items) = 2)
        )`
   );
 }

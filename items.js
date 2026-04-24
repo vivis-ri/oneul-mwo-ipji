@@ -3,7 +3,7 @@
 
 export const ITEM_DEFS = {
   '민소매':      { slug: 'sleeveless',    prompt: 'a single cute sleeveless tank top in soft pastel pink' },
-  '반팔':        { slug: 'short-sleeve',  prompt: 'a single cute short-sleeve t-shirt in soft pastel orange' },
+  '반소매':      { slug: 'short-sleeve',  prompt: 'a single cute short-sleeve t-shirt in soft pastel orange' },
   '반바지':      { slug: 'shorts',        prompt: 'a pair of casual cute shorts in pastel blue denim' },
   '원피스':      { slug: 'dress',         prompt: 'a cute short summer dress in pastel yellow' },
   '린넨바지':    { slug: 'linen-pants',   prompt: 'a pair of loose beige linen pants' },
@@ -12,7 +12,7 @@ export const ITEM_DEFS = {
   '면바지':      { slug: 'cotton-pants',  prompt: 'a pair of beige cotton chino pants' },
   '스니커즈':    { slug: 'sneakers',      prompt: 'a pair of cute white sneakers with pastel accents' },
   '블라우스':    { slug: 'blouse',        prompt: 'a feminine blouse in soft cream with gentle ruffles' },
-  '긴팔 티':     { slug: 'long-sleeve',   prompt: 'a long-sleeve t-shirt in pastel navy with cream stripes' },
+  '긴소매 티':   { slug: 'long-sleeve',   prompt: 'a long-sleeve t-shirt in pastel navy with cream stripes' },
   '슬랙스':      { slug: 'slacks',        prompt: 'a pair of formal slacks in dark gray' },
   '얇은 가디건': { slug: 'thin-cardigan', prompt: 'a thin cardigan in soft pastel sage green' },
   '얇은 니트':   { slug: 'thin-knit',     prompt: 'a thin knit sweater in pastel blue' },
