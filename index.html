@@ -266,10 +266,15 @@
             <p class="view-subtitle">지금 그 지역 사람들은 뭐 입고 어땠는지 실시간으로 공유 · 매일 자정 이후 초기화</p>
           </div>
           <div class="community-region-filter">
-            <label for="communityRegionFilter" class="filter-label">지역 보기</label>
-            <select id="communityRegionFilter" class="region-select">
-              <option value="">전체 지역</option>
-            </select>
+            <label for="communityFilterProvince" class="filter-label">지역 보기</label>
+            <div class="region-pair">
+              <select id="communityFilterProvince" class="region-select">
+                <option value="">전체 도</option>
+              </select>
+              <select id="communityRegionFilter" class="region-select">
+                <option value="">전체 시</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -307,7 +312,14 @@
 
           <div class="form-row">
             <label class="form-label">지역</label>
-            <select id="postRegion" class="region-select"></select>
+            <div class="region-pair">
+              <select id="postProvince" class="region-select">
+                <option value="">도 선택</option>
+              </select>
+              <select id="postRegion" class="region-select">
+                <option value="">시 선택</option>
+              </select>
+            </div>
           </div>
 
           <div class="form-row">

@@ -284,20 +284,35 @@ async function loadCommunityRegions() {
 }
 
 function populateRegionSelects(regions) {
-  const filterSel = $('#communityRegionFilter');
-  const postSel = $('#postRegion');
-  const groupsHtml = regions.groups.map(g => {
-    const opts = g.cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-    return g.province
-      ? `<optgroup label="${escapeHtml(g.province)}">${opts}</optgroup>`
-      : opts;
-  }).join('');
-  filterSel.innerHTML = `<option value="">전체 지역</option>${groupsHtml}`;
-  postSel.innerHTML = groupsHtml;
-  // 현재 홈에서 선택된 지역이 시 단위면 기본값
+  const filterProv = $('#communityFilterProvince');
+  const filterCity = $('#communityRegionFilter');
+  const postProv = $('#postProvince');
+  const postCity = $('#postRegion');
+
+  const provOpts = regions.groups
+    .map(g => `<option value="${escapeHtml(g.province)}">${escapeHtml(g.province)}</option>`)
+    .join('');
+  filterProv.innerHTML = `<option value="">전체 도</option>${provOpts}`;
+  postProv.innerHTML = `<option value="">도 선택</option>${provOpts}`;
+  filterCity.innerHTML = `<option value="">전체 시</option>`;
+  postCity.innerHTML = `<option value="">시 선택</option>`;
+
+  // 홈에서 선택된 지역이 시 단위면 후기 작성 폼에 자동 선택
   if (STATE.region && regions.flat.includes(STATE.region)) {
-    postSel.value = STATE.region;
+    const group = regions.groups.find(g => g.cities.includes(STATE.region));
+    if (group) {
+      postProv.value = group.province;
+      fillCityOptions(postCity, group, '시 선택');
+      postCity.value = STATE.region;
+    }
   }
+}
+
+function fillCityOptions(cityEl, group, placeholder) {
+  const opts = group
+    ? group.cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')
+    : '';
+  cityEl.innerHTML = `<option value="">${placeholder}</option>${opts}`;
 }
 
 function renderItemsCheckGrid() {
@@ -438,10 +453,24 @@ function renderRecentList(recent) {
   `).join('');
 }
 
-// 필터 변경
+// 필터 도 변경 → 해당 도의 시 목록으로 갱신 + 필터 초기화
+$('#communityFilterProvince').addEventListener('change', (e) => {
+  const group = COMMUNITY.regions?.groups.find(g => g.province === e.target.value);
+  fillCityOptions($('#communityRegionFilter'), group, '전체 시');
+  COMMUNITY.filterRegion = '';
+  loadCommunityFeed();
+});
+
+// 필터 시 변경 → 해당 시로 필터링
 $('#communityRegionFilter').addEventListener('change', (e) => {
   COMMUNITY.filterRegion = e.target.value;
   loadCommunityFeed();
+});
+
+// 후기 작성 도 변경 → 해당 도의 시 목록으로 갱신
+$('#postProvince').addEventListener('change', (e) => {
+  const group = COMMUNITY.regions?.groups.find(g => g.province === e.target.value);
+  fillCityOptions($('#postRegion'), group, '시 선택');
 });
 
 $('#postSubmitBtn').addEventListener('click', submitPost);

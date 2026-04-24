@@ -747,6 +747,8 @@ input { font-family: inherit; }
 }
 .community-region-filter { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
 .filter-label { font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.3px; }
+.region-pair { display: flex; gap: 8px; flex-wrap: wrap; }
+.region-pair .region-select { flex: 1 1 140px; min-width: 0; }
 .region-select {
   padding: 10px 14px; border-radius: 10px;
   background: #fff; border: 1px solid var(--card-border);
