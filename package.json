@@ -1,0 +1,17 @@
+{
+  "name": "oneul-mwo-ipji",
+  "version": "1.0.0",
+  "description": "오늘 뭐 입지? - 기상청 날씨 기반 옷차림 추천 사이트",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "generate-images": "node generate-images.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.4.0",
+    "helmet": "^8.1.0",
+    "sharp": "^0.34.5"
+  }
+}

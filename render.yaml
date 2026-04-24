@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: oneul-mwo-ipji
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeployTrigger: commit
+    healthCheckPath: /
+    envVars:
+      - key: KMA_API_KEY
+        sync: false

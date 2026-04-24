@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>오늘 뭐 입지? · 날씨에 딱 맞는 옷차림 추천</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='none' stroke='%23efb59e' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' d='M17 42h33a10 10 0 0 0 0-20 14 14 0 0 0-26-5A12 12 0 0 0 17 42Z'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="logo" data-view="home">
+        <div class="logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64">
+            <path d="M17 43h31.5a10 10 0 0 0 1.4-19.9 14.5 14.5 0 0 0-27-5.1A11.5 11.5 0 0 0 17 43Z" />
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>오늘 뭐 입지?</h1>
+          <p>날씨에 딱 맞는 옷차림 추천</p>
+        </div>
+      </div>
+
+      <nav class="main-nav">
+        <a href="#home" class="nav-item active" data-view="home">오늘의 추천</a>
+        <a href="#forecast" class="nav-item" data-view="forecast">3일간 날씨</a>
+        <a href="#community" class="nav-item" data-view="community">커뮤니티</a>
+        <a href="#favorites" class="nav-item" data-view="favorites">즐겨찾기</a>
+      </nav>
+
+      <div class="header-actions">
+        <div class="favorites-wrap">
+          <button class="icon-btn" id="favBtn" aria-label="즐겨찾기">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span class="fav-badge" id="favBadge" style="display:none;">0</span>
+          </button>
+          <div class="fav-dropdown" id="favDropdown">
+            <div class="fav-dropdown-header">
+              <span>즐겨찾기</span>
+              <button class="fav-close" id="favClose">✕</button>
+            </div>
+            <div class="fav-list" id="favList"></div>
+          </div>
+        </div>
+        <div class="menu-wrap">
+          <button class="icon-btn menu-hamburger" id="menuBtn" aria-label="메뉴">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <div class="menu-dropdown" id="menuDropdown">
+            <a href="#home" class="menu-item" data-view="home">오늘의 추천</a>
+            <a href="#forecast" class="menu-item" data-view="forecast">3일간 날씨</a>
+            <a href="#community" class="menu-item" data-view="community">커뮤니티</a>
+            <a href="#favorites" class="menu-item" data-view="favorites">즐겨찾기</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- HOME VIEW -->
+    <main class="layout view" id="view-home" data-active="true">
+      <!-- LEFT COLUMN -->
+      <section class="col-left">
+        <!-- Search -->
+        <div class="card search-card">
+          <h2 class="card-title">어디 날씨가 궁금하신가요?</h2>
+          <div class="search-box">
+            <svg class="search-pin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <input type="text" id="regionInput" placeholder="예: 서울특별시 강남구" autocomplete="off" />
+            <button class="star-btn" id="starBtn" aria-label="즐겨찾기 토글" title="즐겨찾기에 추가">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </button>
+            <button class="gps-btn" id="gpsBtn" aria-label="현재 위치">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+              </svg>
+            </button>
+            <div class="autocomplete" id="autocomplete"></div>
+          </div>
+          <div class="quick-chips">
+            <button class="chip chip-primary" data-region="현재위치">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              현재 위치
+            </button>
+            <button class="chip" data-region="서울">서울</button>
+            <button class="chip" data-region="부산">부산</button>
+            <button class="chip" data-region="대구">대구</button>
+            <button class="chip" data-region="제주">제주</button>
+          </div>
+        </div>
+
+        <!-- Weather card -->
+        <div class="card weather-card" id="weatherCard">
+          <div class="weather-main">
+            <div class="weather-icon-lg" id="weatherIcon">
+              <img src="" alt="날씨" id="weatherIconImg" style="display:none;" />
+              <span id="weatherIconEmoji">🌤️</span>
+            </div>
+            <div class="weather-temp-block">
+              <div class="weather-temp">
+                <span class="temp-num" id="currentTemp">--</span>
+                <span class="temp-unit">°C</span>
+              </div>
+              <div class="weather-desc" id="weatherDesc">날씨 불러오는 중…</div>
+            </div>
+          </div>
+          <div class="weather-stats">
+            <div class="stat"><span class="stat-label">체감</span><span class="stat-value" id="statFeel">--°C</span></div>
+            <div class="stat-sep"></div>
+            <div class="stat"><span class="stat-label">습도</span><span class="stat-value" id="statHumidity">--%</span></div>
+            <div class="stat-sep"></div>
+            <div class="stat"><span class="stat-label">바람</span><span class="stat-value" id="statWind">-- m/s</span></div>
+            <div class="stat-sep"></div>
+            <div class="stat"><span class="stat-label">강수</span><span class="stat-value" id="statPrecip">--%</span></div>
+          </div>
+          <div class="weather-badges" id="weatherBadges"></div>
+          <div class="weather-meta">
+            <span id="weatherMeta">—</span>
+          </div>
+
+          <div class="hourly-section">
+            <h3 class="hourly-title">시간별 예보</h3>
+            <div class="hourly-list" id="hourlyList"></div>
+          </div>
+        </div>
+
+        <!-- Tip card -->
+        <div class="card tip-card" id="tipCard">
+          <div class="tip-inner">
+            <div class="tip-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M20.1 6.7a4.5 4.5 0 0 0-6.4 0L12 8.4l-1.7-1.7a4.5 4.5 0 0 0-6.4 6.4L12 20.7l8.1-7.6a4.5 4.5 0 0 0 0-6.4Z" />
+                <path d="M17.5 3.5l.4 1.5 1.5.4-1.5.4-.4 1.5-.4-1.5-1.5-.4 1.5-.4.4-1.5Z" />
+              </svg>
+            </div>
+            <div class="tip-body">
+              <div class="tip-title">오늘의 한 줄 팁</div>
+              <div class="tip-text" id="tipText">날씨를 먼저 확인해보세요!</div>
+            </div>
+            <svg class="tip-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN -->
+      <section class="col-right">
+        <!-- Recommendation -->
+        <div class="card hero-card" id="heroCard">
+          <div class="hero-header">
+            <h2 class="hero-section-title">오늘의 추천 옷차림</h2>
+            <div class="hero-temp-badge" id="heroTempBadge">기온 --°C</div>
+          </div>
+
+          <!-- 시간대 토글 (지금 / 낮 / 밤) -->
+          <div class="time-toggle" id="timeToggle">
+            <button class="time-btn" data-time="now">
+              <span class="time-btn-label">지금</span>
+              <span class="time-btn-temp" id="timeNowTemp">--°</span>
+            </button>
+            <button class="time-btn active" data-time="day">
+              <span class="time-btn-label">낮 (최고)</span>
+              <span class="time-btn-temp" id="timeDayTemp">--°</span>
+            </button>
+            <button class="time-btn" data-time="night">
+              <span class="time-btn-label">밤 (21시)</span>
+              <span class="time-btn-temp" id="timeNightTemp">--°</span>
+            </button>
+          </div>
+
+          <div class="hero-body">
+            <div class="hero-text">
+              <h1 class="hero-title" id="heroTitle">날씨를 먼저 불러올게요</h1>
+              <p class="hero-desc" id="heroDesc">지역을 선택하시면 오늘 날씨에 딱 맞는 옷차림을 추천해드려요.</p>
+
+              <div class="hero-chips">
+                <div class="hero-chip" id="chipTemp">
+                  <span class="chip-icon chip-icon-temp" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M10 14.9V5.8a2 2 0 1 1 4 0v9.1a4.5 4.5 0 1 1-4 0Z" />
+                      <path d="M12 8v7" />
+                    </svg>
+                  </span>
+                  <span class="chip-text">--°</span>
+                </div>
+                <div class="hero-chip" id="chipSeason">
+                  <span class="chip-icon chip-icon-bag" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M7.5 9.5V7.8a4.5 4.5 0 0 1 9 0v1.7" />
+                      <path d="M5.5 9h13l1 10.5H4.5L5.5 9Z" />
+                      <path d="M9 12.2c.6.6 1.6 1 3 1s2.4-.4 3-1" />
+                    </svg>
+                  </span>
+                  <span class="chip-text">--</span>
+                </div>
+                <div class="hero-chip" id="chipOccasion">
+                  <span class="chip-icon chip-icon-heart" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M20.1 6.6a4.8 4.8 0 0 0-6.8 0L12 7.9l-1.3-1.3a4.8 4.8 0 1 0-6.8 6.8L12 21l8.1-7.6a4.8 4.8 0 0 0 0-6.8Z" />
+                    </svg>
+                  </span>
+                  <span class="chip-text">외출</span>
+                </div>
+              </div>
+            </div>
+            <div class="hero-img-wrap">
+              <img id="heroImage" src="" alt="추천 옷차림" class="hero-img" />
+              <div class="hero-img-placeholder" id="heroImagePlaceholder">👕</div>
+            </div>
+          </div>
+
+          <div class="hero-items">
+            <h3 class="items-title">추천 아이템</h3>
+            <div class="items-grid" id="itemsGrid"></div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="card cta-card">
+          <div class="cta-body">
+            <div class="cta-icon" aria-hidden="true">
+              <img src="images/ui/bookmark.png" alt="" />
+            </div>
+            <div class="cta-text">
+              <div class="cta-title">관심 지역을 즐겨찾기에 추가해보세요</div>
+              <div class="cta-desc">자주 가는 지역을 저장하면 날씨를 한눈에 비교할 수 있어요.</div>
+            </div>
+            <button class="cta-btn" id="ctaBtn">즐겨찾기 보기</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- FORECAST (3-DAY) VIEW -->
+    <main class="view forecast-view" id="view-forecast">
+      <div class="view-header">
+        <h1 class="view-title">3일간 날씨</h1>
+        <p class="view-subtitle" id="forecastSubtitle">지역: --</p>
+      </div>
+      <div class="forecast-grid" id="forecastGrid"></div>
+    </main>
+
+    <!-- COMMUNITY VIEW -->
+    <main class="view community-view" id="view-community">
+      <div class="view-header">
+        <div class="view-header-row">
+          <div>
+            <h1 class="view-title">커뮤니티</h1>
+            <p class="view-subtitle">지금 그 지역 사람들은 뭐 입고 어땠는지 실시간으로 공유 · 24시간 뒤 자동 삭제</p>
+          </div>
+          <div class="community-region-filter">
+            <label for="communityRegionFilter" class="filter-label">지역 보기</label>
+            <select id="communityRegionFilter" class="region-select">
+              <option value="">전체 지역</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 통계 대시 -->
+        <div class="card community-stats-card" id="communityStats">
+          <div class="stats-top">
+            <span class="stats-region-label" id="statsRegionLabel">전체 지역</span>
+            <span class="stats-total" id="statsTotal">0명 참여</span>
+          </div>
+          <div class="feel-bars" id="feelBars">
+          <div class="feel-bar"><span class="feel-ico" data-feel-icon="cold"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M4.9 6.1l14.2 11.8M4.9 17.9 19.1 6.1M2 12h20"/></svg></span><span class="feel-label">춥다</span><span class="feel-bar-track"><span class="feel-bar-fill cold" style="width:0%"></span></span><span class="feel-pct" data-feel="cold">0%</span></div>
+          <div class="feel-bar"><span class="feel-ico" data-feel-icon="good"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 13.5c1 1.2 2.1 1.8 3.5 1.8s2.5-.6 3.5-1.8M9 10h.01M15 10h.01"/></svg></span><span class="feel-label">딱 좋다</span><span class="feel-bar-track"><span class="feel-bar-fill good" style="width:0%"></span></span><span class="feel-pct" data-feel="good">0%</span></div>
+          <div class="feel-bar"><span class="feel-ico" data-feel-icon="hot"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.3M12 19.2v2.3M4.8 4.8l1.6 1.6M17.6 17.6l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.8 19.2l1.6-1.6M17.6 6.4l1.6-1.6"/></svg></span><span class="feel-label">덥다</span><span class="feel-bar-track"><span class="feel-bar-fill hot" style="width:0%"></span></span><span class="feel-pct" data-feel="hot">0%</span></div>
+          </div>
+          <div class="top-items-row">
+            <div class="top-items-title">많이 입은 옷 TOP 5</div>
+            <div class="top-items-list" id="topItemsList"><span class="empty-tiny">아직 데이터 없음</span></div>
+          </div>
+          <div class="community-empty-note" id="communityEmptyNote">
+            <div class="community-empty-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 21s7-5.4 7-12A7 7 0 0 0 5 9c0 6.6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg>
+            </div>
+            <div class="community-empty-copy">
+              <strong>아직 공유된 후기가 없어요</strong>
+              <span>첫 번째 후기를 남기면 이 지역의 체감 통계가 바로 채워집니다.</span>
+            </div>
+          </div>
+        </div>
+
+      <!-- 후기 작성 + 최근 리스트 2열 -->
+      <div class="community-grid">
+        <div class="card community-form-card">
+          <h3 class="community-form-title">내 후기 남기기</h3>
+
+          <div class="form-row">
+            <label class="form-label">지역</label>
+            <select id="postRegion" class="region-select"></select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">체감</label>
+            <div class="feel-choice" id="feelChoice">
+              <button type="button" class="feel-btn" data-feel="cold"><span class="feel-btn-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M4.9 6.1l14.2 11.8M4.9 17.9 19.1 6.1M2 12h20"/></svg></span><span>춥다</span></button>
+              <button type="button" class="feel-btn" data-feel="good"><span class="feel-btn-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 13.5c1 1.2 2.1 1.8 3.5 1.8s2.5-.6 3.5-1.8M9 10h.01M15 10h.01"/></svg></span><span>딱 좋다</span></button>
+              <button type="button" class="feel-btn" data-feel="hot"><span class="feel-btn-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.3M12 19.2v2.3M4.8 4.8l1.6 1.6M17.6 17.6l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.8 19.2l1.6-1.6M17.6 6.4l1.6-1.6"/></svg></span><span>덥다</span></button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">입은 옷 (복수 선택)</label>
+            <div class="items-check-grid" id="itemsCheckGrid"></div>
+          </div>
+
+          <button type="button" class="post-submit-btn" id="postSubmitBtn">후기 남기기</button>
+          <div class="form-msg" id="formMsg"></div>
+        </div>
+
+        <div class="card community-list-card">
+          <h3 class="community-form-title">최근 후기</h3>
+          <div class="recent-list" id="recentList">
+            <div class="recent-empty">
+              <div class="community-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M6 8.5A2.5 2.5 0 0 1 8.5 6h7A2.5 2.5 0 0 1 18 8.5v4A2.5 2.5 0 0 1 15.5 15H11l-4 3v-3.5A2.5 2.5 0 0 1 6 12.5v-4Z"/></svg>
+              </div>
+              <strong>아직 후기가 없어요</strong>
+              <span>첫 번째로 남겨보면 다른 사람들도 참고할 수 있어요.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- FAVORITES VIEW -->
+    <main class="view favorites-view" id="view-favorites">
+      <div class="view-header">
+        <h1 class="view-title">즐겨찾기</h1>
+        <p class="view-subtitle">저장된 지역의 현재 날씨를 한 번에 확인하세요</p>
+      </div>
+      <div class="favorites-grid" id="favoritesGrid">
+        <div class="empty-state empty-state-compact" id="favEmpty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.1 6.6a4.8 4.8 0 0 0-6.8 0L12 7.9l-1.3-1.3a4.8 4.8 0 1 0-6.8 6.8L12 21l8.1-7.6a4.8 4.8 0 0 0 0-6.8Z"/></svg>
+          </div>
+          <div class="empty-title">저장된 즐겨찾기가 없어요</div>
+          <div class="empty-desc">검색창 옆 별 아이콘으로 지역을 추가해보세요</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- FOOTER (라이선스 표기) -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <div class="footer-section">
+          <div class="footer-logo">오늘 뭐 입지?</div>
+          <p class="footer-tagline">날씨에 딱 맞는 옷차림을 추천해드려요</p>
+        </div>
+        <div class="footer-section">
+          <div class="footer-title">데이터 출처</div>
+          <ul class="footer-links">
+            <li>날씨 정보 · <a href="https://www.data.go.kr" target="_blank" rel="noopener">기상청 단기예보</a> (공공데이터포털)</li>
+            <li>대기질 정보 · <a href="https://www.airkorea.or.kr" target="_blank" rel="noopener">한국환경공단 에어코리아</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <div class="footer-title">안내</div>
+          <ul class="footer-links">
+            <li>본 서비스는 공공데이터포털의 OpenAPI를 활용한 개인 프로젝트입니다</li>
+            <li>실제 기상 상황과 차이가 있을 수 있습니다</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-credit">
+          <span>© 오늘 뭐 입지?</span>
+          <span>created by vivis_ri</span>
+        </div>
+        <span>자료제공: 기상청 · 한국환경공단</span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
