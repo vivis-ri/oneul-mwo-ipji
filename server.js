@@ -214,20 +214,36 @@ function parseForecast(items) {
   const pop = byCategoryAtTime('POP', curHour) || tmpItems[0] && byCategoryAtTime('POP', tmpItems[0].fcstTime);
   const pcp = byCategoryAtTime('PCP', curHour) || tmpItems[0] && byCategoryAtTime('PCP', tmpItems[0].fcstTime);
 
-  // 시간별 예보 (현재 + 3시간 간격, 6개 슬롯)
+  // 시간별 예보: '지금' 슬롯 + 3시간 간격 5개 (총 6슬롯)
   const curH = now.getUTCHours();
   const hourly = [];
   const allItems = items; // 오늘 + 내일까지 포함
 
-  for (let offset = 0; offset < 18 && hourly.length < 6; offset += 3) {
+  // '지금' 슬롯: 메인 카드와 동일한 현재 기온/날씨 사용
+  // (base_time이 정시일 때 KMA 응답에 해당 시각 예보가 없을 수 있어 별도 처리)
+  const nowTemp = currentTmp ? parseFloat(currentTmp) : null;
+  if (nowTemp !== null && !isNaN(nowTemp)) {
+    hourly.push({
+      time: curHour,
+      date: today,
+      isToday: true,
+      temp: nowTemp,
+      sky: sky ? parseInt(sky, 10) : null,
+      pty: pty ? parseInt(pty, 10) : null,
+      pop: pop ? parseInt(pop, 10) : 0,
+      pcp: parsePcp(pcp),
+    });
+  }
+
+  for (let offset = 3; offset < 18 && hourly.length < 6; offset += 3) {
     const future = new Date(now);
     future.setUTCHours(curH + offset, 0, 0, 0);
     const fcstDate = formatDate(future);
     const fcstTime = String(future.getUTCHours()).padStart(2, '0') + '00';
     const match = allItems.filter(i => i.fcstDate === fcstDate && i.fcstTime === fcstTime);
     const tmp = match.find(i => i.category === 'TMP')?.fcstValue;
-    const sky = match.find(i => i.category === 'SKY')?.fcstValue;
-    const pty = match.find(i => i.category === 'PTY')?.fcstValue;
+    const slotSky = match.find(i => i.category === 'SKY')?.fcstValue;
+    const slotPty = match.find(i => i.category === 'PTY')?.fcstValue;
     const popH = match.find(i => i.category === 'POP')?.fcstValue;
     const pcpH = match.find(i => i.category === 'PCP')?.fcstValue;
     if (tmp) {
@@ -236,8 +252,8 @@ function parseForecast(items) {
         date: fcstDate,
         isToday: fcstDate === today,
         temp: parseFloat(tmp),
-        sky: sky ? parseInt(sky, 10) : null,
-        pty: pty ? parseInt(pty, 10) : null,
+        sky: slotSky ? parseInt(slotSky, 10) : null,
+        pty: slotPty ? parseInt(slotPty, 10) : null,
         pop: popH ? parseInt(popH, 10) : 0,
         pcp: parsePcp(pcpH),
       });
